@@ -1,16 +1,16 @@
+require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const cors = require('cors');
 const { Pool } = require('pg');
-const dotenv = require('dotenv');
 const path = require('path');
-
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 const jwtSecret = process.env.JWT_SECRET || 'earthguard-dev-secret';
 
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -23,6 +23,15 @@ const demoStore = {
       email: 'admin@earthguard.com',
       password_hash: bcrypt.hashSync('admin123', 10),
       role: 'admin',
+      status: 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      email: 'customer@earthguard.com',
+      password_hash: bcrypt.hashSync('customer123', 10),
+      role: 'customer',
       status: 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -40,124 +49,58 @@ const demoStore = {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
-  ],
-  products: [
-    {
-      id: 1,
-      name: 'Eco Starter Kit',
-      description: 'A beginner-friendly package for low-waste living.',
-      category: 'Home',
-      price: 29.99,
-      stock: 25,
-      is_active: true,
-      created_by_user_id: 1,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ],
-  services: [
-    {
-      id: 1,
-      name: 'Carbon Audit',
-      description: 'Carbon footprint review and sustainability action plan.',
-      price: 149.0,
-      duration_days: 14,
-      is_active: true,
-      created_by_user_id: 1,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ],
-  orders: [
-    {
-      id: 1,
-      customer_id: 1,
-      user_id: 1,
-      status: 'paid',
-      total_amount: 179.99,
-      currency: 'USD',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ],
-  order_items: [
-    {
-      id: 1,
-      order_id: 1,
-      product_id: 1,
-      service_id: null,
-      quantity: 1,
-      unit_price: 29.99,
-      subtotal: 29.99,
-      created_at: new Date().toISOString(),
-    },
     {
       id: 2,
-      order_id: 1,
-      service_id: 1,
-      product_id: null,
-      quantity: 1,
-      unit_price: 149.0,
-      subtotal: 149.0,
+      user_id: 2,
+      full_name: 'Ava Green',
+      phone: '+1-555-0199',
+      address: '98 Eco Road',
+      city: 'Oakland',
+      country: 'USA',
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
+  ],
+  products: [
+    { id: 1, name: 'Eco Starter Kit', description: 'A beginner-friendly package for low-waste living.', category: 'Home', price: 29.99, stock: 25, is_active: true, created_by_user_id: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: 2, name: 'Solar Lantern', description: 'Portable and sustainable lighting for homes and camps.', category: 'Energy', price: 49.0, stock: 18, is_active: true, created_by_user_id: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  ],
+  services: [
+    { id: 1, name: 'Carbon Audit', description: 'Carbon footprint review and sustainability action plan.', price: 149.0, duration_days: 14, is_active: true, created_by_user_id: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: 2, name: 'Green Office Assessment', description: 'Optimization of office environmental practices.', price: 280.0, duration_days: 21, is_active: true, created_by_user_id: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  ],
+  orders: [
+    { id: 1, customer_id: 2, user_id: 2, status: 'paid', total_amount: 179.99, currency: 'USD', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: 2, customer_id: 1, user_id: 1, status: 'pending', total_amount: 49.0, currency: 'USD', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  ],
+  order_items: [
+    { id: 1, order_id: 1, product_id: 1, service_id: null, quantity: 1, unit_price: 29.99, subtotal: 29.99, created_at: new Date().toISOString() },
+    { id: 2, order_id: 1, service_id: 1, product_id: null, quantity: 1, unit_price: 149.0, subtotal: 149.0, created_at: new Date().toISOString() },
+    { id: 3, order_id: 2, product_id: 2, service_id: null, quantity: 1, unit_price: 49.0, subtotal: 49.0, created_at: new Date().toISOString() },
   ],
   payments: [
-    {
-      id: 1,
-      order_id: 1,
-      user_id: 1,
-      amount: 179.99,
-      payment_method: 'card',
-      payment_status: 'paid',
-      transaction_reference: 'demo_txn_1001',
-      created_at: new Date().toISOString(),
-    },
+    { id: 1, order_id: 1, user_id: 2, amount: 179.99, payment_method: 'card', payment_status: 'paid', transaction_reference: 'demo_txn_1001', created_at: new Date().toISOString() },
+    { id: 2, order_id: 2, user_id: 1, amount: 49.0, payment_method: 'card', payment_status: 'pending', transaction_reference: 'demo_txn_1002', created_at: new Date().toISOString() },
   ],
   messages: [
-    {
-      id: 1,
-      sender_user_id: 1,
-      receiver_user_id: 1,
-      subject: 'Welcome to EarthGuard',
-      body: 'Welcome to the EarthGuard community. Let’s protect the planet together.',
-      is_read: false,
-      created_at: new Date().toISOString(),
-    },
+    { id: 1, sender_user_id: 1, receiver_user_id: 2, subject: 'Welcome to EarthGuard', body: 'Welcome to the EarthGuard community. Let’s protect the planet together.', is_read: false, created_at: new Date().toISOString() },
+    { id: 2, sender_user_id: 2, receiver_user_id: 1, subject: 'Question about service', body: 'Can I add a solar advisory plan to my order?', is_read: true, created_at: new Date().toISOString() },
   ],
   ownership: [
-    {
-      id: 1,
-      user_id: 1,
-      resource_type: 'user',
-      resource_id: 1,
-      permission_level: 'owner',
-      granted_at: new Date().toISOString(),
-    },
+    { id: 1, user_id: 1, resource_type: 'user', resource_id: 1, permission_level: 'owner', granted_at: new Date().toISOString() },
+    { id: 2, user_id: 2, resource_type: 'user', resource_id: 2, permission_level: 'owner', granted_at: new Date().toISOString() },
   ],
 };
 
-const appRoot = path.join(__dirname);
+const buildToken = (user) => jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '7d' });
 
-function getDb() {
-  return pool;
-}
-
-function buildToken(user) {
-  return jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, {
-    expiresIn: '7d',
-  });
-}
-
-function authMiddleware(req, res, next) {
-  const header = req.headers.authorization;
-
-  if (!header || !header.startsWith('Bearer ')) {
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Authentication required.' });
   }
 
-  const token = header.split(' ')[1];
-
+  const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, jwtSecret);
     req.user = decoded;
@@ -165,38 +108,12 @@ function authMiddleware(req, res, next) {
   } catch (error) {
     return res.status(401).json({ message: 'Invalid or expired token.' });
   }
-}
+};
 
-function ensureUserOwnership(req, resourceType, resourceId) {
-  const ownerRecords = demoStore.ownership.filter(
-    (entry) =>
-      entry.user_id === req.user.id &&
-      entry.resource_type === resourceType &&
-      Number(entry.resource_id) === Number(resourceId)
-  );
-
-  if (req.user.role !== 'admin' && ownerRecords.length === 0) {
-    return false;
-  }
-
-  return true;
-}
-
-const publicRoutes = ['/', '/index.html'];
-publicRoutes.forEach((route) => {
-  app.get(route, (req, res) => {
-    res.sendFile(path.join(appRoot, 'index.html'));
-  });
-});
-
-app.use(express.static(appRoot));
+const getUserById = (userId) => demoStore.users.find((user) => Number(user.id) === Number(userId));
 
 app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    database: pool ? 'connected' : 'demo-mode',
-    timestamp: new Date().toISOString(),
-  });
+  res.json({ status: 'ok', database: pool ? 'postgres' : 'demo-mode', time: new Date().toISOString() });
 });
 
 app.post('/api/auth/register', async (req, res) => {
@@ -206,18 +123,18 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ message: 'Email and password are required.' });
   }
 
-  const trimmedEmail = String(email).trim().toLowerCase();
-  const existingUser = demoStore.users.find((user) => user.email === trimmedEmail);
-
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const existingUser = demoStore.users.find((user) => user.email === normalizedEmail);
   if (existingUser) {
-    return res.status(409).json({ message: 'User already exists.' });
+    return res.status(409).json({ message: 'A user with that email already exists.' });
   }
 
+  const newUserId = demoStore.users.length ? Math.max(...demoStore.users.map((user) => user.id)) + 1 : 1;
   const passwordHash = bcrypt.hashSync(password, 10);
-  const userId = demoStore.users.length ? Math.max(...demoStore.users.map((user) => user.id)) + 1 : 1;
+
   const newUser = {
-    id: userId,
-    email: trimmedEmail,
+    id: newUserId,
+    email: normalizedEmail,
     password_hash: passwordHash,
     role,
     status: 'active',
@@ -226,10 +143,9 @@ app.post('/api/auth/register', async (req, res) => {
   };
 
   demoStore.users.push(newUser);
-
-  const customerRecord = {
+  demoStore.customers.push({
     id: demoStore.customers.length ? Math.max(...demoStore.customers.map((customer) => customer.id)) + 1 : 1,
-    user_id: userId,
+    user_id: newUserId,
     full_name: fullName || 'New Customer',
     phone: '',
     address: '',
@@ -237,14 +153,13 @@ app.post('/api/auth/register', async (req, res) => {
     country: '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-  };
+  });
 
-  demoStore.customers.push(customerRecord);
   demoStore.ownership.push({
     id: demoStore.ownership.length ? Math.max(...demoStore.ownership.map((entry) => entry.id)) + 1 : 1,
-    user_id: userId,
+    user_id: newUserId,
     resource_type: 'user',
-    resource_id: userId,
+    resource_id: newUserId,
     permission_level: 'owner',
     granted_at: new Date().toISOString(),
   });
@@ -272,8 +187,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.get('/api/users/me', authMiddleware, (req, res) => {
-  const user = demoStore.users.find((entry) => entry.id === req.user.id);
-
+  const user = getUserById(req.user.id);
   if (!user) {
     return res.status(404).json({ message: 'User not found.' });
   }
@@ -283,16 +197,39 @@ app.get('/api/users/me', authMiddleware, (req, res) => {
     email: user.email,
     role: user.role,
     status: user.status,
+    created_at: user.created_at,
   });
 });
 
-app.get('/api/customers', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    const customer = demoStore.customers.find((entry) => entry.user_id === req.user.id);
-    return res.json(customer ? [customer] : []);
+app.get('/api/dashboard', authMiddleware, (req, res) => {
+  const customerCount = demoStore.customers.length;
+  const orderCount = demoStore.orders.length;
+  const paymentCount = demoStore.payments.length;
+  const messageCount = demoStore.messages.length;
+
+  const baseResponse = {
+    metrics: {
+      users: demoStore.users.length,
+      customers: customerCount,
+      orders: orderCount,
+      payments: paymentCount,
+      products: demoStore.products.length,
+      services: demoStore.services.length,
+      messages: messageCount,
+    },
+    products: demoStore.products,
+    services: demoStore.services,
+    orders: demoStore.orders,
+    recentMessages: demoStore.messages.slice(-3).reverse(),
+    user: getUserById(req.user.id),
+  };
+
+  if (req.user.role === 'customer') {
+    baseResponse.orders = demoStore.orders.filter((order) => Number(order.user_id) === Number(req.user.id));
+    baseResponse.messages = demoStore.messages.filter((message) => Number(message.sender_user_id) === Number(req.user.id) || Number(message.receiver_user_id) === Number(req.user.id));
   }
 
-  return res.json(demoStore.customers);
+  return res.json(baseResponse);
 });
 
 app.get('/api/products', authMiddleware, (req, res) => {
@@ -303,78 +240,17 @@ app.get('/api/services', authMiddleware, (req, res) => {
   return res.json(demoStore.services);
 });
 
-app.get('/api/orders', authMiddleware, (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.json(demoStore.orders.filter((entry) => entry.user_id === req.user.id));
-  }
-
-  return res.json(demoStore.orders);
-});
-
-app.post('/api/orders', authMiddleware, (req, res) => {
-  const { customerId, items = [], totalAmount = 0, currency = 'USD' } = req.body;
-
-  if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ message: 'Order items are required.' });
-  }
-
-  const customer = demoStore.customers.find((entry) => Number(entry.id) === Number(customerId));
-
-  if (!customer) {
-    return res.status(404).json({ message: 'Customer not found.' });
-  }
-
-  const orderId = demoStore.orders.length ? Math.max(...demoStore.orders.map((order) => order.id)) + 1 : 1;
-  const order = {
-    id: orderId,
-    customer_id: customer.id,
-    user_id: req.user.id,
-    status: 'pending',
-    total_amount: Number(totalAmount) || 0,
-    currency,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  demoStore.orders.push(order);
-  demoStore.ownership.push({
-    id: demoStore.ownership.length ? Math.max(...demoStore.ownership.map((entry) => entry.id)) + 1 : 1,
-    user_id: req.user.id,
-    resource_type: 'order',
-    resource_id: orderId,
-    permission_level: 'owner',
-    granted_at: new Date().toISOString(),
-  });
-
-  const createdItems = items.map((item) => ({
-    id: demoStore.order_items.length ? Math.max(...demoStore.order_items.map((entry) => entry.id)) + 1 : 1,
-    order_id: orderId,
-    product_id: item.productId || null,
-    service_id: item.serviceId || null,
-    quantity: item.quantity || 1,
-    unit_price: item.unitPrice || 0,
-    subtotal: item.subtotal || 0,
-    created_at: new Date().toISOString(),
-  }));
-
-  demoStore.order_items.push(...createdItems);
-
-  return res.status(201).json({ message: 'Order created successfully.', order });
-});
-
 app.get('/api/messages', authMiddleware, (req, res) => {
   const messages = demoStore.messages.filter(
-    (entry) => entry.sender_user_id === req.user.id || entry.receiver_user_id === req.user.id
+    (entry) => Number(entry.sender_user_id) === Number(req.user.id) || Number(entry.receiver_user_id) === Number(req.user.id)
   );
-
   return res.json(messages);
 });
 
 app.post('/api/messages', authMiddleware, (req, res) => {
   const { receiverUserId, subject, body } = req.body;
-
   if (!receiverUserId || !body) {
-    return res.status(400).json({ message: 'Receiver and message body are required.' });
+    return res.status(400).json({ message: 'Receiver and body are required.' });
   }
 
   const message = {
@@ -391,17 +267,43 @@ app.post('/api/messages', authMiddleware, (req, res) => {
   return res.status(201).json({ message: 'Message sent successfully.', message });
 });
 
-app.get('/api/payments', authMiddleware, (req, res) => {
+app.get('/api/orders', authMiddleware, (req, res) => {
   if (req.user.role !== 'admin') {
-    return res.json(demoStore.payments.filter((entry) => entry.user_id === req.user.id));
+    return res.json(demoStore.orders.filter((order) => Number(order.user_id) === Number(req.user.id)));
+  }
+  return res.json(demoStore.orders);
+});
+
+app.post('/api/orders', authMiddleware, (req, res) => {
+  const { customerId, items = [], totalAmount = 0, currency = 'USD' } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ message: 'Order items are required.' });
   }
 
+  const order = {
+    id: demoStore.orders.length ? Math.max(...demoStore.orders.map((entry) => entry.id)) + 1 : 1,
+    customer_id: customerId || demoStore.customers.find((customer) => Number(customer.user_id) === Number(req.user.id))?.id,
+    user_id: req.user.id,
+    status: 'pending',
+    total_amount: Number(totalAmount) || 0,
+    currency,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  demoStore.orders.push(order);
+  return res.status(201).json({ message: 'Order created.', order });
+});
+
+app.get('/api/payments', authMiddleware, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.json(demoStore.payments.filter((payment) => Number(payment.user_id) === Number(req.user.id)));
+  }
   return res.json(demoStore.payments);
 });
 
 app.post('/api/payments', authMiddleware, (req, res) => {
-  const { orderId, amount, paymentMethod = 'card', transactionReference = 'demo_reference' } = req.body;
-
+  const { orderId, amount, paymentMethod = 'card' } = req.body;
   if (!orderId || !amount) {
     return res.status(400).json({ message: 'Order ID and amount are required.' });
   }
@@ -413,7 +315,7 @@ app.post('/api/payments', authMiddleware, (req, res) => {
     amount: Number(amount),
     payment_method: paymentMethod,
     payment_status: 'paid',
-    transaction_reference: transactionReference,
+    transaction_reference: `demo_txn_${Date.now()}`,
     created_at: new Date().toISOString(),
   };
 
@@ -421,36 +323,15 @@ app.post('/api/payments', authMiddleware, (req, res) => {
   return res.status(201).json({ message: 'Payment recorded successfully.', payment });
 });
 
-app.get('/api/dashboard', authMiddleware, (req, res) => {
-  const totals = {
-    users: demoStore.users.length,
-    customers: demoStore.customers.length,
-    orders: demoStore.orders.length,
-    payments: demoStore.payments.length,
-    products: demoStore.products.length,
-    services: demoStore.services.length,
-    messages: demoStore.messages.length,
-  };
-
-  return res.json({ totals });
-});
-
 app.use((error, req, res, next) => {
   console.error(error);
-  return res.status(500).json({ message: 'Internal server error' });
+  res.status(500).json({ message: 'Internal server error.' });
 });
 
 if (pool) {
-  pool
-    .query('SELECT 1')
-    .then(() => {
-      console.log('Connected to PostgreSQL.');
-    })
-    .catch((error) => {
-      console.error('PostgreSQL connection error:', error.message);
-    });
+  pool.query('SELECT 1').then(() => console.log('Connected to PostgreSQL.')).catch((error) => console.error('PostgreSQL connection issue:', error.message));
 }
 
 app.listen(port, () => {
-  console.log(`EarthGuard app running on http://localhost:${port}`);
+  console.log(`EarthGuard API running on http://localhost:${port}`);
 });

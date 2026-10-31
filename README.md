@@ -1,111 +1,102 @@
 # EarthGuard
 
-EarthGuard is a sustainability-focused web application with a marketing landing page and a backend with database-backed records for:
+EarthGuard is a sustainability-focused application with a landing page, authentication, admin dashboard, user customer records, payment and order management, and a PostgreSQL-ready backend.
 
-- User accounts
-- Customer information
-- Orders and payments
-- Messages
-- Products and services
+## Stack
 
-The project includes a production-ready starter structure for a Node.js + PostgreSQL backend and a static frontend.
+- Frontend: React + Vite
+- Backend: Node.js + Express
+- Database: PostgreSQL
+- Auth: JWT + bcrypt
+- Deployment: Vercel for frontend, Render/Railway/Fly for backend
 
-## Features
+## Architecture
 
-- Landing page for EarthGuard
-- Theme switcher
-- Sustainability tips modal
-- Progress tracker and chart
-- User authentication with JWT
-- PostgreSQL schema for all major tables
-- Ownership-aware API design
-- Demo mode fallback when no database is configured
+- `server.js` — Express API with auth, dashboard, products, services, orders, payments, messages
+- `db/schema.sql` — PostgreSQL schema for all major entities
+- `client/` — React app with login, signup, and dashboard pages
+- `vercel.json` — config for Vercel deployment
+- `render.yaml` — deployment config for Render
 
-## Project structure
+## Local development
 
-- `index.html` — landing page
-- `styles.css` — site styling
-- `app.js` — frontend interactions
-- `chart.js` — chart rendering logic
-- `server.js` — Express API server
-- `db/schema.sql` — database schema
-- `db/init.js` — initializes the PostgreSQL schema
-- `.env.example` — environment configuration template
-
-## Local setup
-
-1. Install dependencies:
+1. Install backend dependencies:
 
    ```bash
    npm install
    ```
 
-2. Create a `.env` file:
+2. Install client dependencies:
+
+   ```bash
+   cd client
+   npm install
+   ```
+
+3. Configure environment variables:
 
    ```bash
    cp .env.example .env
    ```
 
-3. Configure your PostgreSQL connection string in `.env`.
-
-4. Initialize the database schema:
+4. Start the backend:
 
    ```bash
-   npm run db:init
+   npm run dev
    ```
 
-5. Start the app:
+5. Start the frontend:
 
    ```bash
-   npm start
+   npm run client:dev
    ```
 
-6. Open:
+6. Access:
 
-   ```text
-   http://localhost:3000
-   ```
+   - Frontend: http://localhost:5173
+   - API: http://localhost:3000
 
-## Environment variables
+## Demo credentials
 
-- `PORT` — app port, default `3000`
-- `JWT_SECRET` — secure secret for login tokens
-- `DATABASE_URL` — PostgreSQL connection string
+- Admin: admin@earthguard.com / admin123
+- Customer: customer@earthguard.com / customer123
 
-## Example `.env`
+## Database setup
+
+Use PostgreSQL and set `DATABASE_URL` in `.env`:
 
 ```env
-PORT=3000
-JWT_SECRET=supersecretjwtkey
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/earthguard
+JWT_SECRET=change-this-secret
+PORT=3000
 ```
 
-## Demo mode
+Then initialize the schema:
 
-If `DATABASE_URL` is not configured, the backend falls back to an in-memory data store so the app can still run locally for demonstration.
+```bash
+npm run db:init
+```
 
-## API endpoints
+## Deployment
 
-- `GET /api/health`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/users/me`
-- `GET /api/customers`
-- `GET /api/products`
-- `GET /api/services`
-- `GET /api/orders`
-- `POST /api/orders`
-- `GET /api/messages`
-- `POST /api/messages`
-- `GET /api/payments`
-- `POST /api/payments`
-- `GET /api/dashboard`
+### Frontend (Vercel)
 
-## Production deployment
+1. Import the `client/` app into Vercel.
+2. Set the environment variable:
+   - `VITE_API_URL=https://your-render-url.com`
 
-- Frontend: Vercel or Netlify
-- Backend: Render, Railway, or Fly.io
-- Database: Supabase, Neon, or managed PostgreSQL
+### Backend (Render)
+
+1. Deploy the repository root as a web service.
+2. Set environment variables:
+   - `PORT=3000`
+   - `JWT_SECRET=...`
+   - `DATABASE_URL=...`
+
+## RBAC model
+
+- `admin` — full access to dashboard and records
+- `customer` — access to own order, message, and account info
 
 ## License
 

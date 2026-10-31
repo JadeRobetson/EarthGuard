@@ -1,23 +1,20 @@
 {
   "name": "earthguard",
-  "version": "1.0.0",
-  "description": "EarthGuard sustainability platform with user accounts, customer records, orders, payments, messages, and products/services.",
-  "main": "server.js",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "db:init": "node db/init.js"
+    "db:init": "node db/init.js",
+    "client:install": "cd client && npm install",
+    "client:dev": "cd client && npm run dev -- --host 0.0.0.0",
+    "client:build": "cd client && npm run build",
+    "build": "npm run client:build"
   },
-  "keywords": [
-    "earthguard",
-    "sustainability",
-    "backend",
-    "postgresql",
-    "express"
-  ],
-  "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.1",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",

@@ -1,0 +1,155 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+
+export default function DashboardPage() {
+  const navigate = useNavigate();
+  const [dashboard, setDashboard] = useState({ metrics: {}, products: [], services: [], orders: [], recentMessages: [], user: null });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      const token = localStorage.getItem('earthguard_token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || 'Unable to load dashboard.');
+        }
+
+        setDashboard(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, [navigate]);
+
+  const logout = () => {
+    localStorage.removeItem('earthguard_token');
+    localStorage.removeItem('earthguard_user');
+    navigate('/login');
+  };
+
+  const userRole = dashboard.user?.role || 'customer';
+
+  if (loading) {
+    return <div className="dashboard-loading">Loading dashboard...</div>;
+  }
+
+  return (
+    <div className="dashboard-screen">
+      <header className="dashboard-header">
+        <div>
+          <p className="eyebrow">EarthGuard Portal</p>
+          <h1>{userRole === 'admin' ? 'Admin Dashboard' : 'Customer Dashboard'}</h1>
+        </div>
+        <button className="secondary-btn" onClick={logout}>Log out</button>
+      </header>
+
+      {error ? <div className="error-box">{error}</div> : null}
+
+      <section className="stats-grid">
+        <div className="stat-card">
+          <span>Users</span>
+          <strong>{dashboard.metrics.users || 0}</strong>
+        </div>
+        <div className="stat-card">
+          <span>Customers</span>
+          <strong>{dashboard.metrics.customers || 0}</strong>
+        </div>
+        <div className="stat-card">
+          <span>Orders</span>
+          <strong>{dashboard.metrics.orders || 0}</strong>
+        </div>
+        <div className="stat-card">
+          <span>Payments</span>
+          <strong>{dashboard.metrics.payments || 0}</strong>
+        </div>
+      </section>
+
+      {userRole === 'admin' ? (
+        <section className="content-grid">
+          <div className="panel">
+            <h3>Products</h3>
+            <ul className="list">
+              {(dashboard.products || []).map((product) => (
+                <li key={product.id}>
+                  <span>{product.name}</span>
+                  <strong>{formatCurrency(product.price)}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="panel">
+            <h3>Services</h3>
+            <ul className="list">
+              {(dashboard.services || []).map((service) => (
+                <li key={service.id}>
+                  <span>{service.name}</span>
+                  <strong>{formatCurrency(service.price)}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="panel wide-panel">
+            <h3>Recent orders</h3>
+            <ul className="list">
+              {(dashboard.orders || []).slice(0, 5).map((order) => (
+                <li key={order.id}>
+                  <span>Order #{order.id}</span>
+                  <strong>{order.status}</strong>
+                  <em>{formatCurrency(order.total_amount)}</em>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ) : (
+        <section className="content-grid">
+          <div className="panel">
+            <h3>My orders</h3>
+            <ul className="list">
+              {(dashboard.orders || []).map((order) => (
+                <li key={order.id}>
+                  <span>Order #{order.id}</span>
+                  <strong>{order.status}</strong>
+                  <em>{formatCurrency(order.total_amount)}</em>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="panel">
+            <h3>Messages</h3>
+            <ul className="list message-list">
+              {(dashboard.recentMessages || []).map((message) => (
+                <li key={message.id}>
+                  <span>{message.subject}</span>
+                  <em>{message.body}</em>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
