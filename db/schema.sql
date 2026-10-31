@@ -1,0 +1,105 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(50) NOT NULL DEFAULT 'customer',
+  status VARCHAR(50) NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS customer_profiles (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  full_name VARCHAR(255) NOT NULL,
+  phone VARCHAR(50),
+  address TEXT,
+  city VARCHAR(120),
+  country VARCHAR(120),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS products (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  category VARCHAR(120),
+  price NUMERIC(10,2) NOT NULL DEFAULT 0,
+  stock INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by_user_id INTEGER REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS services (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  price NUMERIC(10,2) NOT NULL DEFAULT 0,
+  duration_days INTEGER NOT NULL DEFAULT 30,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by_user_id INTEGER REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id SERIAL PRIMARY KEY,
+  customer_id INTEGER NOT NULL REFERENCES customer_profiles(id) ON DELETE RESTRICT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  total_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  currency VARCHAR(10) NOT NULL DEFAULT 'USD',
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id INTEGER REFERENCES products(id),
+  service_id INTEGER REFERENCES services(id),
+  quantity INTEGER NOT NULL DEFAULT 1,
+  unit_price NUMERIC(10,2) NOT NULL DEFAULT 0,
+  subtotal NUMERIC(10,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  amount NUMERIC(10,2) NOT NULL,
+  payment_method VARCHAR(100) NOT NULL DEFAULT 'card',
+  payment_status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  transaction_reference VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id SERIAL PRIMARY KEY,
+  sender_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  receiver_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subject VARCHAR(255),
+  body TEXT NOT NULL,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS ownership (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  resource_type VARCHAR(100) NOT NULL,
+  resource_id INTEGER NOT NULL,
+  permission_level VARCHAR(50) NOT NULL DEFAULT 'owner',
+  granted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_customer_profiles_user_id ON customer_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_sender_user_id ON messages(sender_user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_receiver_user_id ON messages(receiver_user_id);
+CREATE INDEX IF NOT EXISTS idx_ownership_user_id ON ownership(user_id);

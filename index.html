@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EarthGuard - Save the Earth Together</title>
+    <meta
+      name="description"
+      content="EarthGuard helps people take simple, sustainable actions and build a better world together."
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  </head>
+  <body>
+    <header class="navbar">
+      <div class="logo">🌍 EarthGuard</div>
+      <nav>
+        <a href="#about">About</a>
+        <a href="#tips">Tips</a>
+        <a href="#action">Get Started</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <button id="theme-toggle" class="btn btn-icon" aria-label="Toggle dark mode">🌙</button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-content">
+          <h1>The Future is Now. Let's Build It Together.</h1>
+          <p>
+            Simple, practical steps to protect the environment and save our planet for future
+            generations.
+          </p>
+          <button id="scroll-btn" class="btn btn-primary">Start Saving Today</button>
+        </div>
+      </section>
+
+      <section id="about" class="section">
+        <h2>Why Your Actions Matter</h2>
+        <div class="grid-3">
+          <div class="card">
+            <span class="icon" aria-hidden="true">🌱</span>
+            <h3>Climate Action</h3>
+            <p>
+              Reduction of carbon emissions is the most urgent priority in environmental
+              protection. Every person's contribution matters.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon" aria-hidden="true">💧</span>
+            <h3>Water Conservation</h3>
+            <p>
+              Over 70% of the Earth is water-covered, but only 3% is fresh water. Every drop
+              counts.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon" aria-hidden="true">♻️</span>
+            <h3>Waste Reduction</h3>
+            <p>
+              About 8 billion tons of plastic enter our oceans every year. Reduce, reuse, and
+              recycle more frequently.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="tips" class="section">
+        <h2>Quick Tips for Daily Sustainability</h2>
+
+        <div class="tip-grid" data-type="energy">
+          <button class="tip-card btn-interactive" data-tip-content="1. Turn off lights when leaving a room"></button>
+          <button class="tip-card btn-interactive" data-tip-content="2. Use energy-efficient LED lights"></button>
+          <button class="tip-card btn-interactive" data-tip-content="3. Unplug devices when not in use"></button>
+        </div>
+
+        <div class="tip-grid" data-type="water">
+          <button class="tip-card btn-interactive" data-tip-content="4. Fix leaks and run dishwashers full"></button>
+          <button class="tip-card btn-interactive" data-tip-content="5. Use the shower instead of bath regularly"></button>
+          <button class="tip-card btn-interactive" data-tip-content="6. Collect rainwater for plants"></button>
+        </div>
+
+        <div class="tip-grid" data-type="consumption">
+          <button class="tip-card btn-interactive" data-tip-content="7. Eat more plant-based meals"></button>
+          <button class="tip-card btn-interactive" data-tip-content="8. Choose products with less packaging"></button>
+          <button class="tip-card btn-interactive" data-tip-content="9. Buy sustainable and local products"></button>
+        </div>
+
+        <div id="modal" class="modal hidden" aria-hidden="true">
+          <div class="modal-content">
+            <span class="modal-close" aria-label="Close tip modal">&times;</span>
+            <h3 id="modal-title">Tip Title</h3>
+            <p id="modal-text"></p>
+            <button class="btn btn-primary" id="modal-action">Save This Tip</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="action" class="section">
+        <h2>Your Environmental Progress</h2>
+        <div class="progress-tracker">
+          <div class="tracker-item">
+            <span class="icon" aria-hidden="true">📊</span>
+            <h3>Cookies Saved (in 5 years)</h3>
+            <p id="cookie-stats">Loading...</p>
+          </div>
+          <button id="track-reset" class="btn btn-secondary">Reset Progress</button>
+        </div>
+
+        <canvas id="progress-chart" width="960" height="320" aria-label="Environmental progress chart"></canvas>
+      </section>
+
+      <section id="contact" class="section">
+        <h2>Get Involved & Keep Learning</h2>
+        <div class="grid-3">
+          <a href="#" class="card link-card">
+            📖 Read: <strong>The Earth Guidebook</strong>
+          </a>
+          <a href="#" class="card link-card">
+            🔍 Join: <strong>Local Conservation Groups</strong>
+          </a>
+          <a href="#" class="card link-card">
+            📸 Upload Photo: <strong>Share Your Green Journey</strong>
+          </a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>© 2025 EarthGuard - Empowering Environmental Stewardship</p>
+        <p><em>Let's make a better world together, starting today.</em></p>
+      </footer>
+    </main>
+
+    <div class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation">☰</div>
+
+    <script src="chart.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

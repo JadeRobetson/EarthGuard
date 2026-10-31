@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="EarthGuard favicon">
+  <rect width="128" height="128" rx="24" fill="#e8f9ee"/>
+  <circle cx="64" cy="64" r="42" fill="#63c27b"/>
+  <path d="M31 68c9-6 18-9 33-9s24 3 33 9c-6 19-20 31-33 31s-27-12-33-31Z" fill="#2d7d46" opacity="0.9"/>
+  <path d="M39 48c8 2 12 9 12 17 0 8-5 15-12 17-2-7-3-16-3-25 0-3 1-7 3-9Z" fill="#dff7e6" opacity="0.7"/>
+  <path d="M81 40c13 5 21 19 17 31-7 0-17-3-23-9-6-7-9-15-7-22 4-1 8-1 13 0Z" fill="#dff7e6" opacity="0.7"/>
+</svg>
