@@ -92,7 +92,9 @@ const demoStore = {
   ],
 };
 
-const buildToken = (user) => jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '7d' });
+const buildToken = (user) => jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '1h' });
+
+const getUserById = (userId) => demoStore.users.find((user) => Number(user.id) === Number(userId));
 
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -103,14 +105,25 @@ const authMiddleware = (req, res, next) => {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, jwtSecret);
-    req.user = decoded;
+    const currentUser = getUserById(decoded.id);
+    if (
+      !currentUser ||
+      currentUser.status !== 'active' ||
+      currentUser.email !== String(decoded.email || '').trim().toLowerCase()
+    ) {
+      return res.status(401).json({ message: 'Invalid or expired session.' });
+    }
+
+    req.user = {
+      id: currentUser.id,
+      email: currentUser.email,
+      role: currentUser.role,
+    };
     return next();
   } catch (error) {
     return res.status(401).json({ message: 'Invalid or expired token.' });
   }
 };
-
-const getUserById = (userId) => demoStore.users.find((user) => Number(user.id) === Number(userId));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', database: pool ? 'postgres' : 'demo-mode', time: new Date().toISOString() });
