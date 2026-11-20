@@ -311,7 +311,7 @@ app.get('/api/payments', authMiddleware, (req, res) => {
   return res.json(demoStore.payments);
 });
 
-app.post('/api/payments', authMiddleware, paymentCreationLimiter, (req, res) => {
+app.post('/api/payments', paymentCreationLimiter, authMiddleware, (req, res) => {
   const { orderId, amount, paymentMethod = 'card' } = req.body;
   if (!orderId || !amount) {
     return res.status(400).json({ message: 'Order ID and amount are required.' });
