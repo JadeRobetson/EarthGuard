@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const { Pool } = require('pg');
 const path = require('path');
 
@@ -111,6 +112,14 @@ const authMiddleware = (req, res, next) => {
 };
 
 const getUserById = (userId) => demoStore.users.find((user) => Number(user.id) === Number(userId));
+
+const paymentCreationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many payment attempts. Please try again later.' },
+});
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', database: pool ? 'postgres' : 'demo-mode', time: new Date().toISOString() });
@@ -302,7 +311,7 @@ app.get('/api/payments', authMiddleware, (req, res) => {
   return res.json(demoStore.payments);
 });
 
-app.post('/api/payments', authMiddleware, (req, res) => {
+app.post('/api/payments', authMiddleware, paymentCreationLimiter, (req, res) => {
   const { orderId, amount, paymentMethod = 'card' } = req.body;
   if (!orderId || !amount) {
     return res.status(400).json({ message: 'Order ID and amount are required.' });
