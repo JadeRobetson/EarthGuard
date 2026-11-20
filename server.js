@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const { rateLimit } = require('express-rate-limit');
 const { Pool } = require('pg');
 const path = require('path');
 
@@ -10,9 +11,38 @@ const app = express();
 const port = process.env.PORT || 3000;
 const jwtSecret = process.env.JWT_SECRET || 'earthguard-dev-secret';
 
-app.use(cors({ origin: true, credentials: true }));
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  credentials: true,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+
+app.use('/api', apiLimiter);
 
 const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
@@ -116,7 +146,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', database: pool ? 'postgres' : 'demo-mode', time: new Date().toISOString() });
 });
 
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   const { email, password, fullName, role = 'customer' } = req.body;
 
   if (!email || !password) {
@@ -168,7 +198,7 @@ app.post('/api/auth/register', async (req, res) => {
   return res.status(201).json({ token, user: { id: newUser.id, email: newUser.email, role: newUser.role } });
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
