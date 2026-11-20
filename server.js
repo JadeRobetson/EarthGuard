@@ -160,26 +160,35 @@ app.get('/api/health', (req, res) => {
 });
 
 app.post('/api/auth/register', authLimiter, async (req, res) => {
-  const { email, password, fullName, role = 'customer' } = req.body;
+  const { email, password, fullName } = req.body;
 
-  if (!email || !password) {
+  if (typeof email !== 'string' || typeof password !== 'string') {
     return res.status(400).json({ message: 'Email and password are required.' });
+  }
+
+  if (password.length < 8 || password.length > 128) {
+    return res.status(400).json({ message: 'Password must be between 8 and 128 characters.' });
   }
 
   const normalizedEmail = String(email).trim().toLowerCase();
   const existingUser = demoStore.users.find((user) => user.email === normalizedEmail);
   if (existingUser) {
-    return res.status(409).json({ message: 'A user with that email already exists.' });
+    return res.status(400).json({ message: 'Registration could not be completed.' });
   }
 
   const newUserId = demoStore.users.length ? Math.max(...demoStore.users.map((user) => user.id)) + 1 : 1;
-  const passwordHash = bcrypt.hashSync(password, 10);
+  let passwordHash;
+  try {
+    passwordHash = bcrypt.hashSync(password, 10);
+  } catch (error) {
+    return res.status(400).json({ message: 'Invalid password.' });
+  }
 
   const newUser = {
     id: newUserId,
     email: normalizedEmail,
     password_hash: passwordHash,
-    role,
+    role: 'customer',
     status: 'active',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -214,7 +223,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
 app.post('/api/auth/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
+  if (typeof email !== 'string' || typeof password !== 'string') {
     return res.status(400).json({ message: 'Email and password are required.' });
   }
 
@@ -245,32 +254,38 @@ app.get('/api/users/me', authMiddleware, (req, res) => {
 });
 
 app.get('/api/dashboard', authMiddleware, (req, res) => {
-  const customerCount = demoStore.customers.length;
-  const orderCount = demoStore.orders.length;
-  const paymentCount = demoStore.payments.length;
-  const messageCount = demoStore.messages.length;
+  const isAdmin = req.user.role === 'admin';
+  const visibleOrders = isAdmin
+    ? demoStore.orders
+    : demoStore.orders.filter((order) => Number(order.user_id) === Number(req.user.id));
+  const visiblePayments = isAdmin
+    ? demoStore.payments
+    : demoStore.payments.filter((payment) => Number(payment.user_id) === Number(req.user.id));
+  const visibleMessages = demoStore.messages.filter(
+    (message) => isAdmin ||
+      Number(message.sender_user_id) === Number(req.user.id) ||
+      Number(message.receiver_user_id) === Number(req.user.id)
+  );
 
   const baseResponse = {
     metrics: {
-      users: demoStore.users.length,
-      customers: customerCount,
-      orders: orderCount,
-      payments: paymentCount,
+      users: isAdmin ? demoStore.users.length : 1,
+      customers: isAdmin ? demoStore.customers.length : 1,
+      orders: visibleOrders.length,
+      payments: visiblePayments.length,
       products: demoStore.products.length,
       services: demoStore.services.length,
-      messages: messageCount,
+      messages: visibleMessages.length,
     },
     products: demoStore.products,
     services: demoStore.services,
-    orders: demoStore.orders,
-    recentMessages: demoStore.messages.slice(-3).reverse(),
-    user: getUserById(req.user.id),
+    orders: visibleOrders,
+    recentMessages: visibleMessages.slice(-3).reverse(),
+    user: (() => {
+      const user = getUserById(req.user.id);
+      return user ? { id: user.id, email: user.email, role: user.role, status: user.status, created_at: user.created_at } : null;
+    })(),
   };
-
-  if (req.user.role === 'customer') {
-    baseResponse.orders = demoStore.orders.filter((order) => Number(order.user_id) === Number(req.user.id));
-    baseResponse.messages = demoStore.messages.filter((message) => Number(message.sender_user_id) === Number(req.user.id) || Number(message.receiver_user_id) === Number(req.user.id));
-  }
 
   return res.json(baseResponse);
 });
@@ -318,23 +333,84 @@ app.get('/api/orders', authMiddleware, (req, res) => {
 });
 
 app.post('/api/orders', authMiddleware, (req, res) => {
-  const { customerId, items = [], totalAmount = 0, currency = 'USD' } = req.body;
+  const { items = [], currency = 'USD' } = req.body;
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: 'Order items are required.' });
   }
 
+  if (!['USD'].includes(currency)) {
+    return res.status(400).json({ message: 'Unsupported currency.' });
+  }
+
+  const customer = demoStore.customers.find((entry) => Number(entry.user_id) === Number(req.user.id));
+  if (!customer) {
+    return res.status(400).json({ message: 'Customer profile is required.' });
+  }
+
+  const calculatedItems = [];
+  let totalAmount = 0;
+
+  for (const item of items) {
+    const quantity = Number(item?.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
+      return res.status(400).json({ message: 'Invalid item quantity.' });
+    }
+
+    let catalogItem;
+    let productId = null;
+    let serviceId = null;
+
+    if (item.productId !== undefined) {
+      productId = Number(item.productId);
+      catalogItem = demoStore.products.find((entry) =>
+        Number(entry.id) === productId && entry.is_active
+      );
+    } else if (item.serviceId !== undefined) {
+      serviceId = Number(item.serviceId);
+      catalogItem = demoStore.services.find((entry) =>
+        Number(entry.id) === serviceId && entry.is_active
+      );
+    }
+
+    if (!catalogItem) {
+      return res.status(400).json({ message: 'One or more order items are invalid.' });
+    }
+
+    const unitPrice = Number(catalogItem.price);
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+      return res.status(400).json({ message: 'Invalid catalog price.' });
+    }
+
+    const subtotal = Math.round(unitPrice * quantity * 100) / 100;
+    totalAmount += subtotal;
+    calculatedItems.push({ productId, serviceId, quantity, unitPrice, subtotal });
+  }
+
+  totalAmount = Math.round(totalAmount * 100) / 100;
   const order = {
     id: demoStore.orders.length ? Math.max(...demoStore.orders.map((entry) => entry.id)) + 1 : 1,
-    customer_id: customerId || demoStore.customers.find((customer) => Number(customer.user_id) === Number(req.user.id))?.id,
+    customer_id: customer.id,
     user_id: req.user.id,
     status: 'pending',
-    total_amount: Number(totalAmount) || 0,
+    total_amount: totalAmount,
     currency,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
 
   demoStore.orders.push(order);
+  for (const item of calculatedItems) {
+    demoStore.order_items.push({
+      id: demoStore.order_items.length ? Math.max(...demoStore.order_items.map((entry) => entry.id)) + 1 : 1,
+      order_id: order.id,
+      product_id: item.productId,
+      service_id: item.serviceId,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      subtotal: item.subtotal,
+      created_at: new Date().toISOString(),
+    });
+  }
   return res.status(201).json({ message: 'Order created.', order });
 });
 
@@ -346,19 +422,31 @@ app.get('/api/payments', authMiddleware, (req, res) => {
 });
 
 app.post('/api/payments', authMiddleware, (req, res) => {
-  const { orderId, amount, paymentMethod = 'card' } = req.body;
-  if (!orderId || !amount) {
-    return res.status(400).json({ message: 'Order ID and amount are required.' });
+  const { orderId, paymentMethod = 'card' } = req.body;
+  if (!orderId) {
+    return res.status(400).json({ message: 'Order ID is required.' });
+  }
+
+  const order = demoStore.orders.find((entry) => Number(entry.id) === Number(orderId));
+  if (!order) {
+    return res.status(404).json({ message: 'Order not found.' });
+  }
+  if (req.user.role !== 'admin' && Number(order.user_id) !== Number(req.user.id)) {
+    return res.status(403).json({ message: 'You cannot create a payment for this order.' });
+  }
+
+  if (typeof paymentMethod !== 'string' || !['card', 'bank'].includes(paymentMethod)) {
+    return res.status(400).json({ message: 'Invalid payment method.' });
   }
 
   const payment = {
     id: demoStore.payments.length ? Math.max(...demoStore.payments.map((entry) => entry.id)) + 1 : 1,
-    order_id: Number(orderId),
-    user_id: req.user.id,
-    amount: Number(amount),
+    order_id: order.id,
+    user_id: order.user_id,
+    amount: Number(order.total_amount),
     payment_method: paymentMethod,
-    payment_status: 'paid',
-    transaction_reference: `demo_txn_${Date.now()}`,
+    payment_status: 'pending',
+    transaction_reference: null,
     created_at: new Date().toISOString(),
   };
 
